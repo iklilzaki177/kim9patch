@@ -4,13 +4,25 @@
 
 ---
 
-## Quick Start (2 commands)
+## Quick Start
+
+### Option 1: One-liner install (Recommended)
 
 ```bash
-# 1. Install the patch tool
-npm install -g km9
+curl -sSL https://raw.githubusercontent.com/iklilzaki177/kim9patch/main/install.sh | bash
+```
 
-# 2. Patch — auto-detects 9router, stops it if running, patches, restarts
+This installs `km9` globally. Then run:
+```bash
+km9 patch
+```
+
+### Option 2: Manual install
+
+```bash
+git clone https://github.com/iklilzaki177/kim9patch.git
+cd kim9patch
+npm install -g .
 km9 patch
 ```
 
