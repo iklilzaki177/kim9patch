@@ -1,6 +1,6 @@
-# Kimchi 9router Monkey-Patch
+# Kimchi 9router Compatibility Bridge
 
-**Complete tutorial: Fix 9router "exhausted credits" error when connecting to Kimchi AI provider**
+**Enable Kimchi AI provider in 9router — bypass client-gating blocks**
 
 ---
 
@@ -19,7 +19,7 @@ That's it. 9router is now running with Kimchi support. Open the dashboard, add K
 > **How it works:** `kimchi-9router patch` is NOT a server. It's a one-time command that:
 > 1. Detects if 9router is currently running
 > 2. Stops it automatically (if running)
-> 3. Injects the monkey-patch into 9router's source code
+> 3. Installs the compatibility bridge into 9router's source code
 > 4. Restarts 9router automatically
 >
 > If 9router is not running, it just patches the files — then you start it yourself with `9router`.
@@ -54,7 +54,7 @@ Payment Required: the provider for model <model-name> has exhausted its credits
 
 **Root cause:** Kimchi's API gateway blocks non-official clients by checking User-Agent and Accept-Encoding headers. 9router (via AI SDK) sends headers that trigger this block.
 
-**Solution:** This monkey-patch intercepts HTTP requests to Kimchi and injects the correct headers (`User-Agent: kimchi/0.1.20`) to bypass the block.
+**Solution:** This compatibility bridge intercepts HTTP requests to Kimchi and injects the correct headers (`User-Agent: kimchi/0.1.20`) to bypass the block.
 
 ---
 
@@ -90,7 +90,7 @@ Before starting, you need:
 npm install -g kim9patch
 ```
 
-**Step 2:** Apply the monkey-patch to your 9router installation
+**Step 2:** Install the compatibility bridge into your 9router installation
 ```bash
 npx kimchi-9router patch
 ```
@@ -98,7 +98,7 @@ npx kimchi-9router patch
 **Expected output:**
 ```
 9router ditemukan di: /opt/homebrew/lib/node_modules/9router/app/custom-server.js
-Monkey-patch berhasil dipasang!
+Compatibility bridge berhasil dipasang!
   Restart 9router untuk efek terbaru.
   Tambahkan provider Kimchi lewat dashboard: https://llm.kimchi.dev/openai/v1
 ```
@@ -210,7 +210,7 @@ Kimchi Proxy listening on http://127.0.0.1:27487
 | Provider | Base URL | Purpose |
 |----------|----------|---------|
 | `kimchi-proxy` | `http://127.0.0.1:27487/openai/v1` | Works via proxy (no patch needed) |
-| `kimchi-direct` | `https://llm.kimchi.dev/openai/v1` | Works via monkey-patch |
+| `kimchi-direct` | `https://llm.kimchi.dev/openai/v1` | Works via compatibility bridge |
 
 **Step 3:** Test both
 - Both should work
@@ -272,14 +272,14 @@ kimchi-9router patch
 
 ## Uninstall
 
-**Step 1:** Remove the monkey-patch
+**Step 1:** Remove the compatibility bridge
 ```bash
 kimchi-9router unpatch
 ```
 
 **Expected output:**
 ```
-Monkey-patch berhasil dicopot!
+Compatibility bridge berhasil dicopot!
   Restart 9router untuk efek terbaru.
 ```
 

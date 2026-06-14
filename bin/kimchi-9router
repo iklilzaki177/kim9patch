@@ -121,7 +121,7 @@ async function unpatchWithAutoRestart() {
   }
 
   const result = removePatch(installPath);
-  console.log(`Monkey-patch berhasil dicopot! (${result.reason})`);
+  console.log(`Compatibility bridge berhasil dicopot! (${result.reason})`);
 
   if (wasRunning) {
     const started = start9router();
@@ -163,8 +163,8 @@ async function main() {
     case 'help':
     default:
       console.log(`
-  Kimchi 9router Monkey-Patch CLI
-  ================================
+  Kimchi 9router Compatibility Bridge CLI
+  ========================================
 
   Commands:
     kimchi-9router patch    Auto-detect, stop, patch, restart 9router
@@ -174,10 +174,10 @@ async function main() {
 
   How it works:
     "patch" detects if 9router is running, stops it, applies the
-    monkey-patch, and restarts it automatically. One command, done.
+    compatibility bridge, and restarts it automatically. One command, done.
 
   Quick start:
-    npm install -g @iklilzaki177/9router-patch
+    npm install -g kim9patch
     kimchi-9router patch
     # 9router now has Kimchi support built in
       `);

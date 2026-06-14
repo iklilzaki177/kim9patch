@@ -1,7 +1,7 @@
 {
   "name": "kim9patch",
   "version": "1.0.0",
-  "description": "Monkey-patch for 9router to enable Kimchi AI provider connectivity",
+  "description": "Enable Kimchi AI models in 9router",
   "main": "src/index.js",
   "bin": {
     "kimchi-9router": "bin/kimchi-9router"
@@ -18,7 +18,7 @@
     "kimchi",
     "9router",
     "ai-router",
-    "monkey-patch",
+    "compatibility-bridge",
     "llm",
     "openai-compatible"
   ],
