@@ -1,5 +1,5 @@
 {
-  "name": "@iklilzaki177/9router-patch",
+  "name": "kim9patch",
   "version": "1.0.0",
   "description": "Monkey-patch for 9router to enable Kimchi AI provider connectivity",
   "main": "src/index.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/iklilzaki177/9router-patch.git"
+    "url": "https://github.com/iklilzaki177/kim9patch.git"
   },
   "keywords": [
     "kimchi",

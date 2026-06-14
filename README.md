@@ -8,7 +8,7 @@
 
 ```bash
 # 1. Install the patch tool
-npm install -g @iklilzaki177/9router-patch
+npm install -g kim9patch
 
 # 2. Patch — auto-detects 9router, stops it if running, patches, restarts
 kimchi-9router patch
@@ -87,7 +87,7 @@ Before starting, you need:
 
 **Step 1:** Install the patch package globally
 ```bash
-npm install -g @iklilzaki177/9router-patch
+npm install -g kim9patch
 ```
 
 **Step 2:** Apply the monkey-patch to your 9router installation
@@ -285,7 +285,7 @@ Monkey-patch berhasil dicopot!
 
 **Step 2:** Uninstall the npm package
 ```bash
-npm uninstall -g @iklilzaki177/9router-patch
+npm uninstall -g kim9patch
 ```
 
 ---
@@ -423,7 +423,7 @@ When patch is applied:
 
 ```bash
 # Install
-npm install -g @iklilzaki177/9router-patch
+npm install -g kim9patch
 
 # Patch
 npx kimchi-9router patch
