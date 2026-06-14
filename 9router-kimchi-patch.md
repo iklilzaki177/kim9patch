@@ -1,8 +1,8 @@
 ## Goal
 
-A/B test to prove Kimchi API blocks non-official clients and that a monkey-patch fixes it:
+A/B test to prove Kimchi API blocks non-official clients and that a compatibility bridge fixes it:
 
-| Provider | BaseURL | Monkey-patch | Purpose |
+| Provider | BaseURL | Compatibility bridge | Purpose |
 |---|---|---|---|
 | `kimchi` | `https://llm.kimchi.dev/openai/v1` | ❌ No | **Proof of failure** (exhausted error) |
 | `kimchi2` | `https://llm.kimchi.dev/openai/v1` | ✅ Yes | **Proof of fix** (works with patch) |
@@ -11,9 +11,9 @@ Both providers must coexist in the 9router dashboard to demonstrate the before/a
 
 ---
 
-# 9router + Kimchi AI Provider — Monkey-Patch Fix
+# 9router + Kimchi AI Provider — Compatibility Bridge Fix
 
-> **For 9router developers:** This document describes a bug where 9router cannot connect to the Kimchi AI provider (`https://llm.kimchi.dev`) and a temporary monkey-patch fix applied to `custom-server.js`.
+> **For 9router developers:** This document describes a bug where 9router cannot connect to the Kimchi AI provider (`https://llm.kimchi.dev`) and a temporary compatibility bridge fix applied to `custom-server.js`.
 
 ---
 
@@ -51,7 +51,7 @@ A local Python proxy (`urllib.request`) forwards to Kimchi. `urllib.request` doe
 
 ---
 
-## 4. Monkey-Patch Applied to 9router
+## 4. Compatibility Bridge Applied to 9router
 
 ### File Modified
 
@@ -139,7 +139,7 @@ npm install -g 9router
 
 ## 6. Suggestion for 9router Developers
 
-Instead of a global monkey-patch, consider adding **per-provider custom headers** in the provider configuration UI / API:
+Instead of a global compatibility bridge, consider adding **per-provider custom headers** in the provider configuration UI / API:
 
 ```json
 {

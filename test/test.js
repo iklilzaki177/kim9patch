@@ -76,7 +76,7 @@ async function runTests() {
   assert(result2.applied === false, 'Second applyPatch should skip (idempotent)');
   
   const contentAfterTwoPatches = fs.readFileSync(TEMP_TARGET, 'utf8');
-  const patchMarkerCount = (contentAfterTwoPatches.match(/\/\* === KIMCHI MONKEY-PATCH START === \*\//g) || []).length;
+  const patchMarkerCount = (contentAfterTwoPatches.match(/\/\* === KIMCHI BRIDGE START === \*\//g) || []).length;
   assert(patchMarkerCount === 1, 'Patch code should appear exactly once (idempotent)');
 
   // Test 3: verifyPatch returns correct status
@@ -101,7 +101,7 @@ async function runTests() {
   assert(removeResult.removed === true, 'removePatch should report success');
   
   const restoredContent = fs.readFileSync(TEMP_TARGET, 'utf8');
-  const hasPatchCode = restoredContent.includes('KIMCHI MONKEY-PATCH START');
+  const hasPatchCode = restoredContent.includes('KIMCHI BRIDGE START');
   assert(!hasPatchCode, 'Restored file should not contain patch code');
   
   const hasServerRequire = restoredContent.includes('require("./server.js")');

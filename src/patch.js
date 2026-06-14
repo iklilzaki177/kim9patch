@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const HEADER_COMMENT = '/* === KIMCHI MONKEY-PATCH START === */';
-const FOOTER_COMMENT = '/* === KIMCHI MONKEY-PATCH END === */';
+const HEADER_COMMENT = '/* === KIMCHI BRIDGE START === */';
+const FOOTER_COMMENT = '/* === KIMCHI BRIDGE END === */';
 
 const PATCH_CODE = `${HEADER_COMMENT}
 const http = require("http");
