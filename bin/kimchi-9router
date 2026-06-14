@@ -1,0 +1,190 @@
+#!/usr/bin/env node
+const { detectInstallPath } = require('../src/detect');
+const { applyPatch, removePatch, verifyPatch } = require('../src/patch');
+const { execSync, spawn } = require('child_process');
+
+const args = process.argv.slice(2);
+const command = args[0] || 'help';
+
+function is9routerRunning() {
+  try {
+    const ps = execSync('ps aux', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+    const lines = ps.split('\n');
+    for (const line of lines) {
+      if (line.includes('9router') && !line.includes('kimchi-9router') && !line.includes('grep')) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          const pid = parseInt(parts[1]);
+          if (!isNaN(pid)) return pid;
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function killProcess(pid) {
+  try {
+    process.kill(pid, 'SIGTERM');
+    return new Promise(resolve => setTimeout(() => resolve(true), 1000));
+  } catch {
+    return Promise.resolve(false);
+  }
+}
+
+function start9router() {
+  try {
+    const which = execSync('which 9router', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    if (which) {
+      console.log('  Starting 9router...');
+      const child = spawn('9router', [], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      child.unref();
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+async function patchWithAutoRestart() {
+  const installPath = detectInstallPath();
+
+  if (!installPath) {
+    console.error('9router tidak ditemukan. Install dulu: npm i -g 9router');
+    process.exit(1);
+  }
+
+  console.log(`9router ditemukan di: ${installPath}`);
+
+  const pid = is9routerRunning();
+  let wasRunning = false;
+
+  if (pid) {
+    console.log(`9router sedang jalan (PID: ${pid}). Stopping...`);
+    const killed = await killProcess(pid);
+    if (killed) {
+      console.log('  9router stopped.');
+      wasRunning = true;
+    } else {
+      console.log('  Failed to stop. Please stop manually, then restart after patch.');
+    }
+  }
+
+  const result = applyPatch(installPath);
+  if (result.applied) {
+    console.log(`Monkey-patch berhasil dipasang!`);
+  } else {
+    console.log(`Patch sudah terpasang (${result.reason}).`);
+  }
+
+  if (wasRunning) {
+    const started = start9router();
+    if (started) {
+      console.log('  9router restarted with patch active.');
+    } else {
+      console.log('  Start 9router manually: 9router');
+    }
+  } else {
+    console.log('  Start 9router: 9router');
+  }
+
+  console.log('\n  Add Kimchi provider in dashboard:');
+  console.log('  Base URL: https://llm.kimchi.dev/openai/v1');
+}
+
+async function unpatchWithAutoRestart() {
+  const installPath = detectInstallPath();
+
+  if (!installPath) {
+    console.error('9router tidak ditemukan.');
+    process.exit(1);
+  }
+
+  const pid = is9routerRunning();
+  let wasRunning = false;
+
+  if (pid) {
+    console.log(`9router sedang jalan (PID: ${pid}). Stopping...`);
+    const killed = await killProcess(pid);
+    if (killed) {
+      console.log('  9router stopped.');
+      wasRunning = true;
+    } else {
+      console.log('  Failed to stop.');
+    }
+  }
+
+  const result = removePatch(installPath);
+  console.log(`Monkey-patch berhasil dicopot! (${result.reason})`);
+
+  if (wasRunning) {
+    const started = start9router();
+    if (started) {
+      console.log('  9router restarted (original, no patch).');
+    } else {
+      console.log('  Start 9router manually: 9router');
+    }
+  } else {
+    console.log('  Start 9router: 9router');
+  }
+}
+
+async function main() {
+  switch (command) {
+    case 'patch':
+      await patchWithAutoRestart();
+      break;
+
+    case 'unpatch':
+      await unpatchWithAutoRestart();
+      break;
+
+    case 'status': {
+      const installPath = detectInstallPath();
+      if (!installPath) {
+        console.log('9router tidak ditemukan.');
+        process.exit(1);
+      }
+      const status = verifyPatch(installPath);
+      const pid = is9routerRunning();
+      console.log(`Install path: ${installPath}`);
+      console.log(`Patch status: ${status.patched ? 'TERPASANG' : 'BELUM TERPASANG'}`);
+      if (status.patched) console.log(`Patch version: ${status.version || 'unknown'}`);
+      console.log(`9router: ${pid ? 'RUNNING (PID ' + pid + ')' : 'NOT RUNNING'}`);
+      break;
+    }
+
+    case 'help':
+    default:
+      console.log(`
+  Kimchi 9router Monkey-Patch CLI
+  ================================
+
+  Commands:
+    kimchi-9router patch    Auto-detect, stop, patch, restart 9router
+    kimchi-9router unpatch  Auto-detect, stop, unpatch, restart 9router
+    kimchi-9router status   Check patch status + 9router running state
+    kimchi-9router help     Show this help
+
+  How it works:
+    "patch" detects if 9router is running, stops it, applies the
+    monkey-patch, and restarts it automatically. One command, done.
+
+  Quick start:
+    npm install -g @iklilzaki177/9router-patch
+    kimchi-9router patch
+    # 9router now has Kimchi support built in
+      `);
+  }
+}
+
+main().catch((err) => {
+  console.error('Error:', err.message);
+  process.exit(1);
+});

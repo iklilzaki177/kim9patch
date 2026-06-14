@@ -1,0 +1,36 @@
+{
+  "name": "@iklilzaki177/9router-patch",
+  "version": "1.0.0",
+  "description": "Monkey-patch for 9router to enable Kimchi AI provider connectivity",
+  "main": "src/index.js",
+  "bin": {
+    "kimchi-9router": "bin/kimchi-9router"
+  },
+  "scripts": {
+    "postinstall": "node src/postinstall.js",
+    "test": "node test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iklilzaki177/9router-patch.git"
+  },
+  "keywords": [
+    "kimchi",
+    "9router",
+    "ai-router",
+    "monkey-patch",
+    "llm",
+    "openai-compatible"
+  ],
+  "author": "kimchi-dev",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "install.sh",
+    "README.md"
+  ]
+}

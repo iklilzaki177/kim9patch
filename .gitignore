@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.kimchi-backup
+__pycache__/
+*.pyc
+.env
+*.log
