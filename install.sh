@@ -8,7 +8,7 @@
 
 set -e
 
-REPO_URL="${REPO_URL:-https://github.com/iklilzaki177/km9.git}"
+REPO_URL="${REPO_URL:-https://github.com/iklilzaki177/kim9patch.git}"
 INSTALL_DIR="${HOME}/.km9-patch"
 
 echo "Installing Kimchi 9router Patch..."
