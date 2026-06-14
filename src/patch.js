@@ -5,54 +5,56 @@ const HEADER_COMMENT = '/* === KIMCHI BRIDGE START === */';
 const FOOTER_COMMENT = '/* === KIMCHI BRIDGE END === */';
 
 const PATCH_CODE = `${HEADER_COMMENT}
-const http = require("http");
-const https = require("https");
+(function() {
+  var _km9_http = require("http");
+  var _km9_https = require("https");
 
-function isKimchiHost(options) {
-  if (typeof options === "string") return options.includes("llm.kimchi.dev");
-  if (options && options.hostname) return options.hostname.includes("llm.kimchi.dev");
-  if (options && options.host) return options.host.includes("llm.kimchi.dev");
-  return false;
-}
+  function isKimchiHost(options) {
+    if (typeof options === "string") return options.includes("llm.kimchi.dev");
+    if (options && options.hostname) return options.hostname.includes("llm.kimchi.dev");
+    if (options && options.host) return options.host.includes("llm.kimchi.dev");
+    return false;
+  }
 
-function patchOptions(options) {
-  if (!options || typeof options === "string") return options;
-  options.headers = options.headers || {};
-  options.headers["User-Agent"] = "kimchi/0.1.20";
-  delete options.headers["Accept-Encoding"];
-  delete options.headers["accept-encoding"];
-  return options;
-}
+  function patchOptions(options) {
+    if (!options || typeof options === "string") return options;
+    options.headers = options.headers || {};
+    options.headers["User-Agent"] = "kimchi/0.1.20";
+    delete options.headers["Accept-Encoding"];
+    delete options.headers["accept-encoding"];
+    return options;
+  }
 
-const _origHttpRequest = http.request;
-http.request = function(options, callback) {
-  if (isKimchiHost(options)) patchOptions(options);
-  return _origHttpRequest(options, callback);
-};
-
-const _origHttpsRequest = https.request;
-https.request = function(options, callback) {
-  if (isKimchiHost(options)) patchOptions(options);
-  return _origHttpsRequest(options, callback);
-};
-
-if (globalThis.fetch) {
-  const _origFetch = globalThis.fetch;
-  globalThis.fetch = function(input, init) {
-    const url = typeof input === "string" ? input : input.url || input.href || "";
-    if (url.includes("llm.kimchi.dev")) {
-      init = init || {};
-      init.headers = init.headers || {};
-      if (typeof init.headers === "object" && !Array.isArray(init.headers)) {
-        const h = new Headers(init.headers);
-        h.set("User-Agent", "kimchi/0.1.20");
-        h.delete("Accept-Encoding");
-        init.headers = h;
-      }
-    }
-    return _origFetch(input, init);
+  var _origHttpRequest = _km9_http.request;
+  _km9_http.request = function(options, callback) {
+    if (isKimchiHost(options)) patchOptions(options);
+    return _origHttpRequest(options, callback);
   };
-}
+
+  var _origHttpsRequest = _km9_https.request;
+  _km9_https.request = function(options, callback) {
+    if (isKimchiHost(options)) patchOptions(options);
+    return _origHttpsRequest(options, callback);
+  };
+
+  if (globalThis.fetch) {
+    var _origFetch = globalThis.fetch;
+    globalThis.fetch = function(input, init) {
+      var url = typeof input === "string" ? input : input.url || input.href || "";
+      if (url.includes("llm.kimchi.dev")) {
+        init = init || {};
+        init.headers = init.headers || {};
+        if (typeof init.headers === "object" && !Array.isArray(init.headers)) {
+          var h = new Headers(init.headers);
+          h.set("User-Agent", "kimchi/0.1.20");
+          h.delete("Accept-Encoding");
+          init.headers = h;
+        }
+      }
+      return _origFetch(input, init);
+    };
+  }
+})();
 ${FOOTER_COMMENT}
 `;
 
