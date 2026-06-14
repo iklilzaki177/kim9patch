@@ -39,17 +39,31 @@ function start9router() {
     const which = execSync('which 9router', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
     if (which) {
       console.log('  Starting 9router...');
-      const child = spawn('9router', [], {
+      const child = spawn(which, [], {
         detached: true,
-        stdio: 'ignore'
+        stdio: ['ignore', 'ignore', 'ignore'],
+        cwd: process.cwd()
       });
       child.unref();
-      return true;
+
+      // Wait a bit and verify it started
+      return new Promise(resolve => {
+        setTimeout(() => {
+          const newPid = is9routerRunning();
+          if (newPid) {
+            console.log(`  9router restarted (PID: ${newPid})`);
+            resolve(true);
+          } else {
+            console.log('  9router failed to start. Please run: 9router');
+            resolve(false);
+          }
+        }, 2000);
+      });
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    console.log(`  Failed to start 9router: ${err.message}`);
   }
-  return false;
+  return Promise.resolve(false);
 }
 
 async function patchWithAutoRestart() {

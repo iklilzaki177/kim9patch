@@ -54,6 +54,26 @@ const PATCH_CODE = `${HEADER_COMMENT}
       return _origFetch(input, init);
     };
   }
+
+  // Hook undici if available
+  try {
+    var undici = require("undici");
+    if (undici && undici.Agent) {
+      var _origRequest = undici.request;
+      undici.request = function(url, opts) {
+        if (typeof url === "string" && url.includes("llm.kimchi.dev")) {
+          opts = opts || {};
+          opts.headers = opts.headers || {};
+          opts.headers["User-Agent"] = "kimchi/0.1.20";
+          delete opts.headers["Accept-Encoding"];
+          delete opts.headers["accept-encoding"];
+        }
+        return _origRequest.call(this, url, opts);
+      };
+    }
+  } catch (e) {
+    // undici not available, skip
+  }
 })();
 ${FOOTER_COMMENT}
 `;
