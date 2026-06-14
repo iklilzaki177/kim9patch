@@ -3,13 +3,13 @@ const { applyPatch } = require('./patch');
 
 const installPath = detectInstallPath();
 if (!installPath) {
-  console.log('[kimchi-9router] 9router tidak ditemukan. Patch di-skip (jalankan manual: npx kimchi-9router patch)');
+  console.log('[km9] 9router tidak ditemukan. Patch di-skip (jalankan manual: npx km9 patch)');
   process.exit(0);
 }
 
 try {
   const result = applyPatch(installPath);
-  console.log(`[kimchi-9router] ${result.reason}`);
+  console.log(`[km9] ${result.reason}`);
 } catch (err) {
-  console.error(`[kimchi-9router] Gagal auto-patch: ${err.message}`);
+  console.error(`[km9] Gagal auto-patch: ${err.message}`);
 }

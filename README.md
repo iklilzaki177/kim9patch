@@ -8,15 +8,15 @@
 
 ```bash
 # 1. Install the patch tool
-npm install -g kim9patch
+npm install -g km9
 
 # 2. Patch — auto-detects 9router, stops it if running, patches, restarts
-kimchi-9router patch
+km9 patch
 ```
 
 That's it. 9router is now running with Kimchi support. Open the dashboard, add Kimchi provider.
 
-> **How it works:** `kimchi-9router patch` is NOT a server. It's a one-time command that:
+> **How it works:** `km9 patch` is NOT a server. It's a one-time command that:
 > 1. Detects if 9router is currently running
 > 2. Stops it automatically (if running)
 > 3. Installs the compatibility bridge into 9router's source code
@@ -27,18 +27,18 @@ That's it. 9router is now running with Kimchi support. Open the dashboard, add K
 ### All commands
 
 ```bash
-kimchi-9router patch     # Auto stop → patch → restart 9router
-kimchi-9router unpatch   # Auto stop → unpatch → restart 9router
-kimchi-9router status    # Check patch status + is 9router running
-kimchi-9router help      # Show help
+km9 patch     # Auto stop → patch → restart 9router
+km9 unpatch   # Auto stop → unpatch → restart 9router
+km9 status    # Check patch status + is 9router running
+km9 help      # Show help
 ```
 
 ### Lifecycle
 
 ```
-Install tool → kimchi-9router patch → 9router (patched, Kimchi works)
+Install tool → km9 patch → 9router (patched, Kimchi works)
                                          ↓
-                  kimchi-9router unpatch → 9router (original, reverted)
+                  km9 unpatch → 9router (original, reverted)
                                          ↓
                   npm uninstall -g ... → tool removed from laptop
 ```
@@ -87,12 +87,12 @@ Before starting, you need:
 
 **Step 1:** Install the patch package globally
 ```bash
-npm install -g kim9patch
+npm install -g km9
 ```
 
 **Step 2:** Install the compatibility bridge into your 9router installation
 ```bash
-npx kimchi-9router patch
+npx km9 patch
 ```
 
 **Expected output:**
@@ -109,8 +109,8 @@ Compatibility bridge berhasil dipasang!
 
 **Step 1:** Clone the repository
 ```bash
-git clone https://github.com/iklilzaki177/9router-patch.git
-cd 9router-patch
+git clone https://github.com/iklilzaki177/km9.git
+cd km9
 ```
 
 **Step 2:** Install globally
@@ -120,7 +120,7 @@ npm install -g .
 
 **Step 3:** Apply the patch
 ```bash
-kimchi-9router patch
+km9 patch
 ```
 
 ---
@@ -129,17 +129,17 @@ kimchi-9router patch
 
 **Step 1:** Run the installer
 ```bash
-curl -sSL https://raw.githubusercontent.com/iklilzaki177/9router-patch/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/iklilzaki177/km9/main/install.sh | bash
 ```
 
 This will:
-- Clone the repo to `~/.kimchi-9router-patch`
+- Clone the repo to `~/.km9`
 - Install globally via npm
 - Create symlink in `/usr/local/bin`
 
 **Step 2:** Apply the patch
 ```bash
-kimchi-9router patch
+km9 patch
 ```
 
 ---
@@ -148,7 +148,7 @@ kimchi-9router patch
 
 **Step 1:** Check if 9router is detected and patch is applied
 ```bash
-kimchi-9router status
+km9 status
 ```
 
 **Expected output:**
@@ -223,7 +223,7 @@ Kimchi Proxy listening on http://127.0.0.1:27487
 
 **Step 1:** Add provider WITHOUT patch
 ```bash
-kimchi-9router unpatch
+km9 unpatch
 # Restart 9router
 ```
 
@@ -231,7 +231,7 @@ Add provider in dashboard -> Test -> Should fail with "exhausted credits"
 
 **Step 2:** Apply patch
 ```bash
-kimchi-9router patch
+km9 patch
 # Restart 9router
 ```
 
@@ -265,7 +265,7 @@ If 9router is installed in a non-standard location:
 
 ```bash
 export ROUTER_CUSTOM_SERVER=/path/to/9router/app/custom-server.js
-kimchi-9router patch
+km9 patch
 ```
 
 ---
@@ -274,7 +274,7 @@ kimchi-9router patch
 
 **Step 1:** Remove the compatibility bridge
 ```bash
-kimchi-9router unpatch
+km9 unpatch
 ```
 
 **Expected output:**
@@ -285,14 +285,14 @@ Compatibility bridge berhasil dicopot!
 
 **Step 2:** Uninstall the npm package
 ```bash
-npm uninstall -g kim9patch
+npm uninstall -g km9
 ```
 
 ---
 
 ## Troubleshooting
 
-### Problem: `kimchi-9router` command not found
+### Problem: `km9` command not found
 
 **Solution:** npm global bin not in PATH
 ```bash
@@ -303,7 +303,7 @@ npm config get prefix
 export PATH="$PATH:$(npm config get prefix)/bin"
 
 # Or use npx instead
-npx kimchi-9router patch
+npx km9 patch
 ```
 
 ---
@@ -317,13 +317,13 @@ npm install -g 9router
 
 **Solution 2:** Permission denied
 ```bash
-sudo npx kimchi-9router patch
+sudo npx km9 patch
 ```
 
 **Solution 3:** Manual path override
 ```bash
 export ROUTER_CUSTOM_SERVER=/path/to/9router/app/custom-server.js
-kimchi-9router patch
+km9 patch
 ```
 
 ---
@@ -331,7 +331,7 @@ kimchi-9router patch
 ### Problem: Still getting "exhausted credits" after patch
 
 **Checklist:**
-1. Verify patch is applied: `kimchi-9router status`
+1. Verify patch is applied: `km9 status`
 2. Restarted 9router completely (not just reload)
 3. API key is valid (test with curl below)
 4. Using correct model name
@@ -390,7 +390,7 @@ The patch makes 9router requests look like the official Kimchi CLI.
 
 When patch is applied:
 - Original `custom-server.js` backed up to `custom-server.js.kimchi-backup`
-- `kimchi-9router unpatch` restores from backup
+- `km9 unpatch` restores from backup
 - If backup missing, patch code is stripped from file
 
 ---
@@ -398,9 +398,9 @@ When patch is applied:
 ## Files in this repo
 
 ```
-9router-patch/
+km9/
   bin/
-    kimchi-9router          # CLI tool
+    km9          # CLI tool
   src/
     detect.js               # Find 9router installation
     index.js                # Module exports
@@ -423,16 +423,16 @@ When patch is applied:
 
 ```bash
 # Install
-npm install -g kim9patch
+npm install -g km9
 
 # Patch
-npx kimchi-9router patch
+npx km9 patch
 
 # Check status
-npx kimchi-9router status
+npx km9 status
 
 # Unpatch
-npx kimchi-9router unpatch
+npx km9 unpatch
 
 # Start proxy (alternative)
 python3 kimchi_proxy/proxy.py --port 27487
