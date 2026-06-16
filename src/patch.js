@@ -88,30 +88,42 @@ function applyPatch(targetPath) {
   }
 
   const originalContent = fs.readFileSync(targetPath, 'utf8');
-
-  // Idempotent: kalau sudah dipatch, skip
-  if (originalContent.includes(HEADER_COMMENT)) {
-    return { applied: false, reason: 'patch sudah terpasang (idempotent)' };
-  }
-
-  // Backup original
   const backup = _backupPath(targetPath);
+
+  // Create backup on first-ever patch
   if (!fs.existsSync(backup)) {
     fs.copyFileSync(targetPath, backup);
   }
 
-  // Inject sebelum require('./server.js') atau di akhir file
+  const alreadyPatched = originalContent.includes(HEADER_COMMENT);
+
+  // Idempotent: if file currently has patch AND backup is clean, skip
+  if (alreadyPatched && fs.existsSync(backup) && !fs.readFileSync(backup, 'utf8').includes(HEADER_COMMENT)) {
+    return { applied: false, reason: 'patch sudah terpasang (idempotent)' };
+  }
+
+  // Always re-apply from clean base (backup if available and clean, else current file)
+  let cleanContent = originalContent;
+  if (fs.existsSync(backup)) {
+    const backupContent = fs.readFileSync(backup, 'utf8');
+    // Only use backup if it's clean (no patch markers)
+    if (!backupContent.includes(HEADER_COMMENT)) {
+      cleanContent = backupContent;
+    }
+    // If backup is dirty, stick with originalContent (safer than trying to strip)
+  }
+
+  // Inject before require('./server.js') or append at end
   const requireLine = `require("./server.js")`;
   const requireLineSingle = `require('./server.js')`;
   let newContent;
 
-  if (originalContent.includes(requireLine)) {
-    newContent = originalContent.replace(requireLine, PATCH_CODE + '\n' + requireLine);
-  } else if (originalContent.includes(requireLineSingle)) {
-    newContent = originalContent.replace(requireLineSingle, PATCH_CODE + '\n' + requireLineSingle);
+  if (cleanContent.includes(requireLine)) {
+    newContent = cleanContent.replace(requireLine, PATCH_CODE + '\n' + requireLine);
+  } else if (cleanContent.includes(requireLineSingle)) {
+    newContent = cleanContent.replace(requireLineSingle, PATCH_CODE + '\n' + requireLineSingle);
   } else {
-    // fallback: append di akhir
-    newContent = originalContent + '\n' + PATCH_CODE;
+    newContent = cleanContent + '\n' + PATCH_CODE;
   }
 
   fs.writeFileSync(targetPath, newContent, 'utf8');

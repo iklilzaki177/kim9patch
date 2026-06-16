@@ -1,69 +1,125 @@
 #!/usr/bin/env node
 const { detectInstallPath } = require('../src/detect');
 const { applyPatch, removePatch, verifyPatch } = require('../src/patch');
-const { execSync, spawn } = require('child_process');
+const { getProviderBaseUrl, clearErrorState } = require('../src/db');
+const { execSync, spawn, spawnSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const command = args[0] || 'help';
 
-function is9routerRunning() {
+function findAll9routerPids() {
+  // Get every PID in the 9router process tree: the CLI parent
+  // (`node 9router`) and the next-server child. Killing only one leaves
+  // the other orphaned holding the port.
+  const pids = new Set();
+  const myPid = process.pid;
+  const myPpid = process.ppid;
+  const excludePids = new Set([myPid, myPpid]);
+
+  // Get actual 9router binary path to avoid matching unrelated "9router" scripts
+  let routerBin = '';
   try {
-    const ps = execSync('ps aux', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-    const lines = ps.split('\n');
-    for (const line of lines) {
-      if (line.includes('9router') && !line.includes('kimchi-9router') && !line.includes('grep')) {
-        const parts = line.trim().split(/\s+/);
-        if (parts.length >= 2) {
-          const pid = parseInt(parts[1]);
-          if (!isNaN(pid)) return pid;
-        }
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
+    routerBin = execSync('which 9router', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+  } catch {}
+
+  try {
+    const pattern = routerBin ? `node.*${routerBin}` : 'node.*[/]9router';
+    const out = execSync('pgrep -f "' + pattern.replace(/"/g, '\\"') + '"', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    out.split('\n').forEach(p => {
+      const n = parseInt(p);
+      if (!isNaN(n) && !excludePids.has(n)) pids.add(n);
+    });
+  } catch {}
+  try {
+    const out = execSync('lsof -nP -iTCP:20128 -sTCP:LISTEN -t', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    out.split('\n').forEach(p => { const n = parseInt(p); if (!isNaN(n)) pids.add(n); });
+  } catch {}
+  return [...pids];
 }
 
-function killProcess(pid) {
+function is9routerRunning() {
+  // True if 9router's HTTP port is bound — that's the "running" state
+  // from a user's perspective. next-server child owns the port.
+  try {
+    const out = execSync('lsof -nP -iTCP:20128 -sTCP:LISTEN -t', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    if (out) {
+      const pids = out.split('\n').map(p => parseInt(p)).filter(p => !isNaN(p));
+      if (pids.length) return pids[0];
+    }
+  } catch {
+    // port not listening
+  }
+  return null;
+}
+
+async function killProcess(pid) {
   try {
     process.kill(pid, 'SIGTERM');
-    return new Promise(resolve => setTimeout(() => resolve(true), 1000));
   } catch {
-    return Promise.resolve(false);
+    return false;
+  }
+
+  // Wait up to 5 seconds for the process to actually die
+  for (let i = 0; i < 50; i++) {
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      process.kill(pid, 0); // check if still alive
+    } catch {
+      return true; // process is gone
+    }
+  }
+
+  // Still alive? Force kill
+  try {
+    process.kill(pid, 'SIGKILL');
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      process.kill(pid, 0);
+      return false; // still alive even after SIGKILL
+    } catch {
+      return true; // dead now
+    }
+  } catch {
+    return false;
   }
 }
 
 function start9router() {
+  // Background spawn: 9router runs detached, terminal stays free.
+  // User controls lifecycle via `km9 patch` / `km9 unpatch` / `pkill`.
+  let which = '';
   try {
-    const which = execSync('which 9router', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
-    if (which) {
-      console.log('  Starting 9router...');
-      const child = spawn(which, [], {
-        detached: true,
-        stdio: ['ignore', 'ignore', 'ignore'],
-        cwd: process.cwd()
-      });
-      child.unref();
-
-      // Wait a bit and verify it started
-      return new Promise(resolve => {
-        setTimeout(() => {
-          const newPid = is9routerRunning();
-          if (newPid) {
-            console.log(`  9router restarted (PID: ${newPid})`);
-            resolve(true);
-          } else {
-            console.log('  9router failed to start. Please run: 9router');
-            resolve(false);
-          }
-        }, 2000);
-      });
-    }
-  } catch (err) {
-    console.log(`  Failed to start 9router: ${err.message}`);
+    which = execSync('which 9router', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+  } catch {}
+  if (!which) {
+    console.log('  9router not found in PATH. Install: npm i -g 9router');
+    return Promise.resolve(false);
   }
-  return Promise.resolve(false);
+  console.log('  Starting 9router in background...');
+  const child = spawn(which, ['--tray', '--skip-update'], {
+    detached: true,
+    stdio: 'ignore',
+    cwd: process.cwd(),
+    env: { ...process.env }
+  });
+  child.unref();
+
+  // Poll port 20128 until bound (next-server child startup takes ~10-15s)
+  return new Promise(resolve => {
+    const start = Date.now();
+    const poll = setInterval(() => {
+      const pid = is9routerRunning();
+      if (pid) {
+        clearInterval(poll);
+        console.log(`  9router running (PID: ${pid}). Dashboard: http://localhost:20128`);
+        resolve(true);
+      } else if (Date.now() - start > 25000) {
+        clearInterval(poll);
+        console.log('  9router failed to bind port 20128 after 25s. Try: km9 status');
+        resolve(false);
+      }
+    }, 500);
+  });
 }
 
 async function patchWithAutoRestart() {
@@ -76,36 +132,50 @@ async function patchWithAutoRestart() {
 
   console.log(`9router ditemukan di: ${installPath}`);
 
-  const pid = is9routerRunning();
+  const pids = findAll9routerPids();
   let wasRunning = false;
 
-  if (pid) {
-    console.log(`9router sedang jalan (PID: ${pid}). Stopping...`);
-    const killed = await killProcess(pid);
-    if (killed) {
+  if (pids.length) {
+    console.log(`9router sedang jalan (PIDs: ${pids.join(', ')}). Stopping...`);
+    let allKilled = true;
+    for (const pid of pids) {
+      const killed = await killProcess(pid);
+      if (!killed) allKilled = false;
+    }
+    if (allKilled) {
       console.log('  9router stopped.');
       wasRunning = true;
     } else {
-      console.log('  Failed to stop. Please stop manually, then restart after patch.');
+      console.log('  Warning: failed to confirm 9router stopped. Attempting patch anyway...');
+      wasRunning = true;
     }
   }
 
-  const result = applyPatch(installPath);
-  if (result.applied) {
-    console.log(`Monkey-patch berhasil dipasang!`);
-  } else {
-    console.log(`Patch sudah terpasang (${result.reason}).`);
-  }
-
-  if (wasRunning) {
-    const started = start9router();
-    if (started) {
-      console.log('  9router restarted with patch active.');
+  let result;
+  try {
+    result = applyPatch(installPath);
+    if (result.applied) {
+      console.log(`Monkey-patch berhasil dipasang!`);
     } else {
-      console.log('  Start 9router manually: 9router');
+      console.log(`Patch sudah terpasang (${result.reason}).`);
     }
+  } catch (err) {
+    console.error(`  ERROR: failed to apply patch: ${err.message}`);
+    if (wasRunning) {
+      console.log('  Attempting to restart 9router anyway...');
+    }
+    result = { applied: false, reason: err.message };
+  }
+
+  // Auto-restart 9router in the background so the user gets a running
+  // patched server. They can `9router` again manually if they prefer
+  // foreground (e.g. to see tray logs).
+  const started = await start9router();
+  if (started) {
+    console.log('  9router auto-restarted with patch active.');
+    console.log('  Dashboard: http://localhost:20128');
   } else {
-    console.log('  Start 9router: 9router');
+    console.log('  Could not auto-restart 9router. Run manually: 9router --tray --skip-update');
   }
 
   console.log('\n  Add Kimchi provider in dashboard:');
@@ -120,32 +190,45 @@ async function unpatchWithAutoRestart() {
     process.exit(1);
   }
 
-  const pid = is9routerRunning();
+  const pids = findAll9routerPids();
   let wasRunning = false;
 
-  if (pid) {
-    console.log(`9router sedang jalan (PID: ${pid}). Stopping...`);
-    const killed = await killProcess(pid);
-    if (killed) {
+  if (pids.length) {
+    console.log(`9router sedang jalan (PIDs: ${pids.join(', ')}). Stopping...`);
+    let allKilled = true;
+    for (const pid of pids) {
+      const killed = await killProcess(pid);
+      if (!killed) allKilled = false;
+    }
+    if (allKilled) {
       console.log('  9router stopped.');
       wasRunning = true;
     } else {
-      console.log('  Failed to stop.');
+      console.log('  Warning: failed to confirm 9router stopped. Proceeding...');
+      wasRunning = true;
     }
   }
 
-  const result = removePatch(installPath);
-  console.log(`Compatibility bridge berhasil dicopot! (${result.reason})`);
+  let result;
+  try {
+    result = removePatch(installPath);
+    console.log(`Compatibility bridge berhasil dicopot! (${result.reason})`);
+  } catch (err) {
+    console.error(`  ERROR: failed to remove patch: ${err.message}`);
+    result = { removed: false, reason: err.message };
+  }
 
   if (wasRunning) {
-    const started = start9router();
+    // Same as patch: auto-restart 9router after unpatch so the user gets
+    // back to a running (now unpatched) server.
+    const started = await start9router();
     if (started) {
-      console.log('  9router restarted (original, no patch).');
+      console.log('  9router auto-restarted (original, no patch).');
     } else {
-      console.log('  Start 9router manually: 9router');
+      console.log('  Could not auto-restart 9router. Run manually: 9router --tray --skip-update');
     }
   } else {
-    console.log('  Start 9router: 9router');
+    console.log('  9router was not running. Start anytime: 9router --tray --skip-update');
   }
 }
 
@@ -167,10 +250,16 @@ async function main() {
       }
       const status = verifyPatch(installPath);
       const pid = is9routerRunning();
+      const dbBaseUrl = getProviderBaseUrl();
       console.log(`Install path: ${installPath}`);
       console.log(`Patch status: ${status.patched ? 'TERPASANG' : 'BELUM TERPASANG'}`);
       if (status.patched) console.log(`Patch version: ${status.version || 'unknown'}`);
       console.log(`9router: ${pid ? 'RUNNING (PID ' + pid + ')' : 'NOT RUNNING'}`);
+      if (dbBaseUrl) {
+        console.log(`DB baseUrl: ${dbBaseUrl} ${dbBaseUrl.includes('llm.kimchi.dev') ? '✅' : '❌ (should be https://llm.kimchi.dev/openai/v1)'}`);
+      } else {
+        console.log(`DB baseUrl: not set (add kimchi provider in dashboard first)`);
+      }
       break;
     }
 
